@@ -1,0 +1,636 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f4;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+    --accent: #4f46e5;
+    --accent-light: #ede9fe;
+    --accent-text: #3730a3;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 48px;
+    min-height: 100vh;
+  }
+
+  .container { max-width: 780px; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 28px; }
+  .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .header span { font-size: 13px; color: var(--muted); }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .form-full { margin-bottom: 14px; }
+  label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; }
+  input, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+  }
+  input::placeholder { color: #c4c0bb; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active:not(:disabled) { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.9; }
+  .btn-primary:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+  .form-error { color: var(--danger); font-size: 13px; margin-top: 8px; min-height: 20px; }
+  .field-group { position: relative; }
+  .required { color: var(--danger); margin-left: 0.18em; }
+  .field-error { color: var(--danger); font-size: 12px; margin-top: 6px; min-height: 18px; }
+
+  /* Controls bar */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .controls select { width: auto; min-width: 160px; }
+  .sort-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .sort-toggle:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .sort-toggle input[type="checkbox"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .sort-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 12px;
+    transition: transform 0.2s ease, background 0.15s, color 0.15s;
+  }
+  .sort-toggle input[type="checkbox"]:checked + .sort-icon {
+    background: var(--accent);
+    color: #fff;
+    transform: rotate(0deg);
+  }
+  .sort-toggle .sort-icon {
+    transform: rotate(-180deg);
+  }
+
+  .total-badge {
+    margin-left: auto;
+    background: var(--accent-light);
+    color: var(--accent-text);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    padding: 7px 10px;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: #fafaf9; }
+  td {
+    padding: 11px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--accent-light);
+    color: var(--accent-text);
+    white-space: nowrap;
+  }
+  .amount-cell { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* Show loading placeholders while data is fetching */
+  .skeleton { animation: pulse 1.4s ease-in-out infinite; }
+  .skeleton-row td { padding: 14px 10px; }
+  .skeleton-cell {
+    display: inline-block;
+    height: 12px;
+    border-radius: 4px;
+    background: var(--border);
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* Category summary */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .cat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .cat-name { font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: capitalize; }
+  .cat-amount { font-size: 17px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1c1917;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 520px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .controls { gap: 8px; }
+    .total-badge { margin-left: 0; width: 100%; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Expense Tracker</h1>
+    <span>Personal finance, simplified</span>
+  </div>
+
+  <!-- Add Expense Form -->
+  <div class="card">
+    <div class="card-title">Add expense</div>
+    <div class="form-grid">
+      <div class="field-group">
+        <label for="inp-amount">Amount (₹)<span class="required" aria-hidden="true">*</span></label>
+        <input id="inp-amount" type="number" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
+        <div class="field-error" id="err-amount"></div>
+      </div>
+      <div class="field-group">
+        <label for="inp-category">Category<span class="required" aria-hidden="true">*</span></label>
+        <input id="inp-category" type="text" placeholder="Food, Travel, Bills…" list="cat-datalist" autocomplete="off">
+        <datalist id="cat-datalist"></datalist>
+        <div class="field-error" id="err-category"></div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="field-group">
+        <label for="inp-description">Description</label>
+        <input id="inp-description" type="text" placeholder="What was this for?">
+        <div class="field-error" id="err-description"></div>
+      </div>
+      <div class="field-group">
+        <label for="inp-date">Date<span class="required" aria-hidden="true">*</span></label>
+        <input id="inp-date" type="date">
+        <div class="field-error" id="err-date"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="submit-btn" onclick="addExpense()">
+      <span class="btn-icon" aria-hidden="true">＋</span>
+      <span id="submit-label">Add Expense</span>
+    </button>
+    <div class="form-error" id="form-error"></div>
+  </div>
+
+  <!-- Expense List -->
+  <div class="card">
+    <div class="card-title">Expenses</div>
+    <div class="controls">
+      <select id="filter-cat" onchange="loadExpenses()">
+        <option value="">All categories</option>
+      </select>
+      <label class="sort-toggle" title="Toggle newest-first date sort">
+        <input type="checkbox" id="sort-toggle" onchange="loadExpenses()">
+        <span class="sort-icon">↓</span>
+        Newest first
+      </label>
+      <div class="total-badge" id="total-display">Total: ₹0.00</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th style="text-align:right">Amount</th>
+          </tr>
+        </thead>
+        <tbody id="expense-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="empty-state" style="display:none">
+        No expenses yet. Add your first one above.
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Summary -->
+  <div class="card" id="cat-summary-card" style="display:none">
+    <div class="card-title">By category</div>
+    <div class="cat-grid" id="cat-grid"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+   // Backend API base URL (change this in production)
+  const API = "http://localhost:8000";
+
+  // STATE 
+  let pendingIdempotencyKey = null; // Used to prevent duplicate submissions (same request retry)
+
+  // INIT 
+  document.getElementById("inp-date").value = todayISO();
+
+// Clear validation errors when user edits input
+// (idempotency key is only reused for retry, not new input)
+  ["inp-amount", "inp-category", "inp-description", "inp-date"].forEach(id => {
+    document.getElementById(id).addEventListener("input", () => {
+      if (!pendingIdempotencyKey) {
+        pendingIdempotencyKey = null; // redundant, but clear
+      }
+      clearFieldError(id);
+      document.getElementById("form-error").textContent = "";
+    });
+  });
+
+  loadExpenses();
+  loadCategories();
+
+  // Add new expense (handles validation + retry safety)
+  async function addExpense() {
+    const btn = document.getElementById("submit-btn");
+    const label = document.getElementById("submit-label");
+    const errEl = document.getElementById("form-error");
+    const errAmount = document.getElementById("err-amount");
+    const errCategory = document.getElementById("err-category");
+    const errDate = document.getElementById("err-date");
+
+    errEl.textContent = "";
+    clearFieldErrors();
+
+    const amount = parseFloat(document.getElementById("inp-amount").value);
+    const category = document.getElementById("inp-category").value.trim();
+    const description = document.getElementById("inp-description").value.trim();
+    const date = document.getElementById("inp-date").value;
+
+    // Basic validation before sending request
+    if (!amount || isNaN(amount) || amount <= 0) {
+      errAmount.textContent = "Please enter a valid positive amount.";
+      document.getElementById("inp-amount").focus();
+      return;
+    }
+    if (!category) {
+      errCategory.textContent = "Category is required.";
+      document.getElementById("inp-category").focus();
+      return;
+    }
+    if (!date) {
+      errDate.textContent = "Date is required.";
+      document.getElementById("inp-date").focus();
+      return;
+    }
+
+    // Generate key once so retries don't create duplicates
+    if (!pendingIdempotencyKey) {
+      pendingIdempotencyKey = generateUUID();
+    }
+
+    btn.disabled = true;
+    label.textContent = "Saving…";
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // Abort request if it takes too long
+
+    try {
+      const res = await fetch(`${API}/expenses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": pendingIdempotencyKey,
+        },
+        body: JSON.stringify({ amount, category, description, date }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.detail?.[0]?.msg || body?.detail || "Server error. Please try again.";
+        throw new Error(msg);
+      }
+
+      // Reset form after successful save
+      document.getElementById("inp-amount").value = "";
+      document.getElementById("inp-description").value = "";
+      document.getElementById("inp-date").value = todayISO();
+      pendingIdempotencyKey = null;
+
+      showToast("Expense added");
+      await loadExpenses();
+      await loadCategories();
+
+    } catch (e) {
+      clearTimeout(timeoutId);
+      if (e.name === "AbortError") {
+        errEl.textContent = "Request timed out. Please try again.";
+      } else if (e.name === "TypeError") {
+        errEl.textContent = "Network error — check your connection and try again.";
+      } else {
+        errEl.textContent = e.message;
+      }
+    } finally {
+      btn.disabled = false;
+      label.textContent = "Add Expense";
+    }
+  }
+
+  // Fetch expenses from backend (with filters + sorting)
+  async function loadExpenses() {
+    const category = document.getElementById("filter-cat").value;
+    const sort = document.getElementById("sort-toggle").checked ? "date_desc" : "";
+
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (sort) params.set("sort", sort);
+
+    showSkeletonRows();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // Prevent hanging requests
+
+    try {
+      const res = await fetch(`${API}/expenses?${params}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error("Failed to load");
+      const data = await res.json();
+      renderExpenses(data.items);
+    } catch (e) {
+      clearTimeout(timeoutId);
+      if (e.name === "AbortError") {
+        document.getElementById("expense-tbody").innerHTML = `
+          <tr><td colspan="4" style="text-align:center;color:#dc2626;padding:24px;font-size:13px">
+            Request timed out. Please try again.
+          </td></tr>`;
+      } else {
+        document.getElementById("expense-tbody").innerHTML = `
+          <tr><td colspan="4" style="text-align:center;color:#dc2626;padding:24px;font-size:13px">
+            Could not load expenses. Is the backend running?
+          </td></tr>`;
+      }
+      document.getElementById("empty-state").style.display = "none";
+    }
+  }
+
+  // Render expenses table + totals + category breakdown
+  function renderExpenses(expenses) {
+    const tbody = document.getElementById("expense-tbody");
+    const emptyState = document.getElementById("empty-state");
+    const catCard = document.getElementById("cat-summary-card");
+
+    if (!expenses.length) {
+      tbody.innerHTML = "";
+      emptyState.style.display = "";
+      catCard.style.display = "none";
+      document.getElementById("total-display").textContent = "Total: ₹0.00";
+      return;
+    }
+
+    emptyState.style.display = "none";
+    catCard.style.display = "";
+
+    tbody.innerHTML = expenses.map(e => `
+      <tr>
+        <td>${formatDate(e.date)}</td>
+        <td><span class="badge">${escHtml(e.category)}</span></td>
+        <td style="color:#57534e">${escHtml(e.description) || "—"}</td>
+        <td class="amount-cell">₹${parseFloat(e.amount).toFixed(2)}</td>
+      </tr>
+    `).join("");
+
+    // Calculate total for visible expenses
+    const total = expenses.reduce((s, e) => s + parseFloat(e.amount), 0);
+    document.getElementById("total-display").textContent = `Total: ₹${total.toFixed(2)}`;
+
+    // Group totals by category
+    const bycat = {};
+    expenses.forEach(e => {
+      bycat[e.category] = (bycat[e.category] || 0) + parseFloat(e.amount);
+    });
+    document.getElementById("cat-grid").innerHTML = Object.entries(bycat)
+      .sort(([,a], [,b]) => b - a)
+      .map(([cat, amt]) => `
+        <div class="cat-card">
+          <div class="cat-name">${escHtml(cat)}</div>
+          <div class="cat-amount">₹${amt.toFixed(2)}</div>
+        </div>
+      `).join("");
+  }
+
+  // Load categories for filter + autocomplete
+  async function loadCategories() {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // Short timeout (non-critical request)
+
+    try {
+      const res = await fetch(`${API}/expenses/categories`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      const cats = await res.json();
+
+      // Update filter dropdown
+      const sel = document.getElementById("filter-cat");
+      const current = sel.value;
+      sel.innerHTML = `<option value="">All categories</option>` +
+        cats.map(c => `<option value="${escHtml(c)}" ${c === current ? "selected" : ""}>${escHtml(c)}</option>`).join("");
+
+      // Update datalist for autocomplete
+      document.getElementById("cat-datalist").innerHTML =
+        cats.map(c => `<option value="${escHtml(c)}">`).join("");
+    } catch {
+      clearTimeout(timeoutId);
+      // Ignore errors (UI can still function without this)
+    }
+  }
+
+  // Utility functions
+  function todayISO() {
+    return new Date().toISOString().split("T")[0];
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "—";
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  }
+
+  function clearFieldErrors() {
+    ["err-amount", "err-category", "err-description", "err-date"].forEach(id => {
+      document.getElementById(id).textContent = "";
+    });
+  }
+
+  function clearFieldError(inputId) {
+    const map = {
+      "inp-amount": "err-amount",
+      "inp-category": "err-category",
+      "inp-description": "err-description",
+      "inp-date": "err-date",
+    };
+    const errId = map[inputId];
+    if (errId) {
+      document.getElementById(errId).textContent = "";
+    }
+  }
+
+  function escHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function generateUUID() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback if crypto.randomUUID is not available
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2500);
+  }
+
+  function showSkeletonRows() {
+    const tbody = document.getElementById("expense-tbody");
+    tbody.innerHTML = Array(4).fill(`
+      <tr class="skeleton skeleton-row">
+        <td><span class="skeleton-cell" style="width:70px"></span></td>
+        <td><span class="skeleton-cell" style="width:60px"></span></td>
+        <td><span class="skeleton-cell" style="width:120px"></span></td>
+        <td style="text-align:right"><span class="skeleton-cell" style="width:55px"></span></td>
+      </tr>
+    `).join("");
+    document.getElementById("empty-state").style.display = "none";
+  }
+</script>
+</body>
+</html>

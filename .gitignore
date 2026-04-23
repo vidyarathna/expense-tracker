@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.env
+venv/
+.venv/
+expenses.db
+node_modules/
+.vercel/
+.DS_Store
