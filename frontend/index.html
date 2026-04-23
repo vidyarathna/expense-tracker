@@ -344,7 +344,10 @@
 
 <script>
    // Backend API base URL (change this in production)
-  const API = "http://localhost:8000";
+  // const API = "http://localhost:8000";
+
+  // Backend API base URL
+  const API = "https://expense-tracker-production-edc1.up.railway.app";
 
   // STATE 
   let pendingIdempotencyKey = null; // Used to prevent duplicate submissions (same request retry)
