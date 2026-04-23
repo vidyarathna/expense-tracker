@@ -18,7 +18,7 @@ Frontend:
 https://expense-tracker-nine-silk-30.vercel.app/
 
 Backend API:
-https://expense-tracker-production-edc1.up.railway.app/
+https://expense-tracker-production-edc1.up.railway.app//
 
 API Docs:
 https://expense-tracker-production-edc1.up.railway.app/docs
