@@ -325,3 +325,15 @@ def health():
     Simple health endpoint for monitoring or deployment checks.
     """
     return {"status": "ok"}
+
+
+@app.get("/")
+def root():
+    """
+    Basic root endpoint to confirm the API is running.
+
+    Useful for:
+    - quick manual checks (browser / curl)
+    - deployment health verification
+    """
+    return {"message": "Expense Tracker API is running"}

@@ -2,13 +2,26 @@
 
 A minimal full-stack expense tracker built with focus on **correctness under real-world conditions**, not just basic CRUD.
 
-The system is designed to handle situations like:
+The system is designed to handle:
 
 * duplicate submissions (double-click)
 * retries after network failures
 * page refresh during request execution
 
-The goal is predictable and safe behavior rather than feature-heavy implementation.
+The goal is predictable and safe behavior, not feature-heavy implementation.
+
+---
+
+## Live Demo
+
+Frontend:
+https://expense-tracker-nine-silk-30.vercel.app/
+
+Backend API:
+https://expense-tracker-production-edc1.up.railway.app/
+
+API Docs:
+https://expense-tracker-production-edc1.up.railway.app/docs
 
 ---
 
@@ -32,8 +45,8 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload
 
-Runs at: [http://localhost:8000](http://localhost:8000)
-Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+Runs at: http://localhost:8000
+Docs: http://localhost:8000/docs
 
 ---
 
@@ -44,9 +57,9 @@ npx serve .
 
 Or open `index.html` directly.
 
-Before deploying, update:
+Update API URL before running:
 
-const API = "[http://localhost:8000](http://localhost:8000)";
+const API = "http://localhost:8000";
 
 ---
 
@@ -58,6 +71,7 @@ const API = "[http://localhost:8000](http://localhost:8000)";
 | GET    | /expenses            | Supports filtering + sorting |
 | GET    | /expenses/categories | List categories              |
 | GET    | /health              | Health check                 |
+| GET    | /                    | Basic API check              |
 
 ---
 
@@ -81,127 +95,94 @@ Clients may retry due to:
 
 Without idempotency, this leads to duplicate data.
 
-Implementation approach:
+Implementation:
 
 * frontend generates a UUID per submission
-* the same key is reused on retry
+* same key is reused on retry
 * backend stores key with UNIQUE constraint
-* payload hash ensures same request intent
-
-To prevent misuse, the system rejects cases where the same idempotency key is reused with different payloads.
-
-### Concurrency safety
-
-Idempotency is enforced at the database level using a UNIQUE constraint.
-This ensures correctness even under concurrent requests, since duplicate inserts fail atomically.
-
----
-
-## Consistency guarantees
-
-* Write operations are idempotent (no duplicate inserts)
-* Data is consistent within a single instance
-* Backend is the source of truth for computed totals
-
-Not guaranteed:
-
-* Strong consistency across multiple instances (SQLite limitation)
-
----
-
-## Failure handling
-
-The system is designed to behave safely under failures:
-
-* Network timeout → user can retry safely (same idempotency key)
-* Partial request execution → backend prevents duplicate inserts
-* Slow responses → frontend shows loading state
+* payload hash ensures request consistency
 
 ---
 
 ## Deployment
 
-### Backend (Railway)
+Backend:
 
-* Deploy `backend/`
-* Set `DB_PATH=/data/expenses.db` for persistence
+* deployed on Railway
+* root directory: `backend/`
+* persistent DB path: `/data/expenses.db`
 
-### Frontend (Vercel)
+Frontend:
 
-* Deploy `frontend/`
-* Update API URL before deploy
+* deployed on Vercel
+* static HTML/JS app
+* API URL updated to production backend
 
 ---
 
 ## Key design decisions
 
-### 1. SQLite for persistence
+### SQLite
 
-SQLite was chosen because:
+Used because:
 
 * no setup required
-* works well for single-instance apps
-* fast for small datasets
+* simple and fast for small-scale apps
 
-Limitations:
+Trade-off:
 
-* not suitable for high concurrency at scale
-* no native decimal type
-
-In a real system, this would be replaced with Postgres.
+* not suitable for high concurrency or scaling
 
 ---
 
-### 2. Handling money safely
-
-Amounts are:
+### Handling money
 
 * validated using `Decimal`
-* stored as strings in the database
+* stored as string
 
 Reason:
 
-* floating point numbers introduce rounding errors
-* SQLite does not enforce numeric precision
+* avoids floating point precision issues
+* SQLite doesn’t enforce decimal precision
 
 ---
 
-### 3. API response design
+### API design
 
-`GET /expenses` returns both:
+`GET /expenses` returns:
 
-* list of items
-* computed total
+* filtered items
+* total for those items
 
-The backend is responsible for total calculation to ensure consistency with filtering logic.
+This keeps frontend logic simple and consistent.
 
 ---
 
-### 4. Frontend simplicity
+### Frontend approach
 
 Used plain HTML + JavaScript:
 
 * no build step
-* easy to run
-* minimal overhead
+* easy to run and review
+* minimal complexity
 
-Focus was on correctness rather than UI complexity.
+Focus was correctness, not UI complexity.
 
 ---
 
-### 5. Error handling
+## Error handling
 
 Frontend:
 
 * validates input before API call
-* disables submit button during request
-* shows clear error messages
-* safely retries using same idempotency key
+* disables submit during request
+* handles timeouts and network errors
+* retries safely using same idempotency key
 
 Backend:
 
 * strict validation using Pydantic
-* rejects invalid requests
+* rejects invalid or inconsistent requests
 * ensures data integrity
 
 ---
@@ -209,20 +190,10 @@ Backend:
 ## Trade-offs
 
 * No authentication (single-user scope)
-* No pagination (acceptable for small datasets)
+* No pagination
 * No update/delete operations
-* Hardcoded API URL (should use env config)
+* API URL is hardcoded
 * SQLite limits scalability
-
----
-
-## What I skipped intentionally
-
-* User authentication / multi-user isolation
-* Update and delete APIs
-* Pagination / large dataset handling
-* Multi-currency support
-* Full test coverage
 
 ---
 
@@ -235,10 +206,20 @@ Basic integration tests cover:
 * idempotency behavior
 * filtering and sorting
 
-Run tests:
+Run:
 
 cd backend
 pytest -v
+
+---
+
+## How to verify correctness
+
+Try these manually:
+
+1. Click submit multiple times quickly → only one expense created
+2. Retry request after failure → no duplicates
+3. Refresh page during submission → still no duplicates
 
 ---
 
@@ -246,9 +227,9 @@ pytest -v
 
 * move to Postgres with migrations
 * add authentication and user isolation
-* add pagination and indexing
+* add pagination
 * add update/delete endpoints
-* improve frontend state handling (React)
+* improve frontend with a framework (React)
 * expand test coverage
 
 ---
@@ -257,11 +238,9 @@ pytest -v
 
 This project is intentionally minimal.
 
-The focus was:
+Focus areas:
 
 * correctness under unreliable conditions
 * safe handling of money
 * preventing duplicate writes
 * keeping the system simple and maintainable
-
-Designed with production concerns in mind (correctness, retries, data safety), while keeping the scope intentionally small.
